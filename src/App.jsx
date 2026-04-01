@@ -1,305 +1,239 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { accounts, dailyActions, signalFeed, performanceData } from './mockData';
 
-/* ═══════════════════════════════════════════
-   COLOR TOKENS — Salesforce Lightning Design System
-   ═══════════════════════════════════════════ */
-const C = {
-  brand: '#0176d3',
-  brandHover: '#014486',
-  brandLight: '#eef4ff',
-  navBg: '#032d60',
-  navBgDeep: '#001639',
-  white: '#ffffff',
-  bg: '#f3f3f3',
-  bgCard: '#ffffff',
-  text: '#181818',
-  textLight: '#444444',
-  textMuted: '#706e6b',
-  border: '#c9c9c9',
-  borderLight: '#dddbda',
-  hot: '#ba0517',
-  hotBg: '#fef1ee',
-  warm: '#dd7a01',
-  warmBg: '#fef3e8',
-  green: '#2e844a',
-  greenBg: '#cdefc4',
-  blue: '#0176d3',
-  blueBg: '#d8edff',
-  purple: '#7526c4',
-  purpleBg: '#ece1f9',
-  cardShadow: '0 2px 2px 0 rgba(0,0,0,.1)',
-  cardRadius: '.25rem',
+/* ═══════════════════════════════════════════════════════════════
+   SLDS DESIGN TOKENS — Official Lightning Design System values
+   Source: lightningdesignsystem.com/design-tokens
+   ═══════════════════════════════════════════════════════════════ */
+const T = {
+  // Brand
+  brandPrimary: '#1b96ff',
+  brandPrimaryActive: '#0176d3',
+  brandAccessible: '#0176d3',
+  brandAccessibleActive: '#014486',
+  // Backgrounds
+  bgDefault: '#f3f3f3',
+  bgAlt: '#ffffff',
+  bgInverse: '#001639',
+  bgInverseLight: '#032d60',
+  bgHighlight: '#eef4ff',
+  // Text
+  textDefault: '#181818',
+  textWeak: '#444444',
+  textPlaceholder: '#706e6b',
+  textLink: '#0176d3',
+  textLinkHover: '#014486',
+  textInverse: '#ffffff',
+  textInverseWeak: 'rgba(255,255,255,.75)',
+  // Borders
+  borderDefault: '#e5e5e5',
+  borderInput: '#c9c9c9',
+  // Status
+  success: '#2e844a',
+  successLight: '#cdefc4',
+  error: '#ea001e',
+  errorLight: '#fef1ee',
+  warning: '#fe9339',
+  warningLight: '#fef3e8',
+  destructive: '#ba0517',
+  // Misc
+  shadow: '0 2px 2px 0 rgba(0,0,0,.1)',
+  radius: '.25rem',
+  radiusPill: '15rem',
 };
 
-/* ═══════════════════════════════════════════
-   SVG ICONS (SLDS-style)
-   ═══════════════════════════════════════════ */
-const Icon = {
-  waffle: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><circle cx="4" cy="4" r="2.5"/><circle cx="12" cy="4" r="2.5"/><circle cx="20" cy="4" r="2.5"/><circle cx="4" cy="12" r="2.5"/><circle cx="12" cy="12" r="2.5"/><circle cx="20" cy="12" r="2.5"/><circle cx="4" cy="20" r="2.5"/><circle cx="12" cy="20" r="2.5"/><circle cx="20" cy="20" r="2.5"/></svg>
-  ),
-  lightning: (c = '#fff') => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-  ),
-  signal: (c = '#fff') => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 20V4"/></svg>
-  ),
-  chart: (c = '#fff') => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-  ),
-  info: (c = '#fff') => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-  ),
-  phone: (c = C.green) => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-  ),
-  mail: (c = C.textMuted) => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-  ),
-  linkedin: (c = '#0077b5') => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-  ),
-  check: (c = C.green) => (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-  ),
-  clock: (c = C.textMuted) => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-  ),
-  zap: (c = C.warm) => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-  ),
-  arrowLeft: (c = C.brand) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-  ),
-  search: (c = '#fff') => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-  ),
-  bell: (c = '#fff') => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-  ),
-  send: (c = '#fff') => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-  ),
-  chevronDown: (c = C.textMuted) => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-  ),
-  play: (c = '#fff') => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-  ),
-  refresh: (c = C.textMuted) => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-  ),
-  globe: (c = C.textMuted) => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg>
-  ),
-  briefcase: (c = C.textMuted) => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-  ),
-  database: (c = C.brand) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-  ),
-  cpu: (c = C.brand) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
-  ),
-  monitor: (c = C.navBg) => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-  ),
-  cloud: () => (
-    <svg width="24" height="18" viewBox="0 0 24 18" fill="none">
-      <path d="M18.5 7.5a5.5 5.5 0 0 0-10.78-1.09A4.002 4.002 0 0 0 4 10.5C4 12.71 5.79 14.5 8 14.5h10.5c1.93 0 3.5-1.57 3.5-3.5S20.43 7.5 18.5 7.5Z" fill="#fff"/>
-    </svg>
-  ),
+/* ═══════════════════════════════════════════════════════════════
+   SLDS ICONS — Minimal SVG icons matching Salesforce style
+   ═══════════════════════════════════════════════════════════════ */
+const I = {
+  waffle: () => <svg width="21" height="21" viewBox="0 0 21 21" fill="none"><rect x="1" y="1" width="4" height="4" rx="1" fill="#fff"/><rect x="8.5" y="1" width="4" height="4" rx="1" fill="#fff"/><rect x="16" y="1" width="4" height="4" rx="1" fill="#fff"/><rect x="1" y="8.5" width="4" height="4" rx="1" fill="#fff"/><rect x="8.5" y="8.5" width="4" height="4" rx="1" fill="#fff"/><rect x="16" y="8.5" width="4" height="4" rx="1" fill="#fff"/><rect x="1" y="16" width="4" height="4" rx="1" fill="#fff"/><rect x="8.5" y="16" width="4" height="4" rx="1" fill="#fff"/><rect x="16" y="16" width="4" height="4" rx="1" fill="#fff"/></svg>,
+  search: (c='#fff') => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  bell: (c='#fff') => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+  help: (c='#fff') => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+  setup: (c='#fff') => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+  lightning: (c='#fff') => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  phone: (c=T.success) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+  mail: (c=T.textPlaceholder) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
+  linkedin: (c='#0a66c2') => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>,
+  check: (c=T.success) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  clock: (c=T.textPlaceholder) => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  zap: (c=T.warning) => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  arrowLeft: (c=T.textLink) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
+  send: (c='#fff') => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+  chevDown: (c=T.textPlaceholder) => <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
+  play: (c='#fff') => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+  refresh: (c=T.textPlaceholder) => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
+  globe: (c=T.textPlaceholder) => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg>,
+  briefcase: (c=T.textPlaceholder) => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>,
+  database: (c=T.brandPrimary) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+  cpu: (c=T.brandPrimary) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
+  monitor: (c=T.bgInverseLight) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
 };
 
-const signalTypeIcon = { website: Icon.globe, email: Icon.mail, linkedin: Icon.linkedin, job: Icon.briefcase };
+const signalTypeIcon = { website: I.globe, email: I.mail, linkedin: I.linkedin, job: I.briefcase };
 
-/* ═══════════════════════════════════════════
-   ACTION TYPE / PRIORITY CONFIG
-   ═══════════════════════════════════════════ */
-const actionTypeConfig = {
-  'CALL':        { color: '#0176d3', bg: '#d8edff', icon: Icon.phone, label: 'CALL' },
-  'EMAIL':       { color: '#0176d3', bg: '#d8edff', icon: Icon.mail, label: 'EMAIL' },
-  'LINKEDIN':    { color: '#0077b5', bg: '#e0f0f6', icon: Icon.linkedin, label: 'LINKEDIN' },
-  'FOLLOW-UP':   { color: '#7526c4', bg: '#ece1f9', icon: Icon.refresh, label: 'FOLLOW-UP' },
-  'RESEARCH':    { color: '#444', bg: '#eee', icon: Icon.search, label: 'RESEARCH' },
-  'CREATE DEAL': { color: '#2e844a', bg: '#cdefc4', icon: Icon.check, label: 'CREATE DEAL' },
+const actionCfg = {
+  'CALL':        { color: '#0176d3', bg: '#d8edff', icon: I.phone, label: 'CALL' },
+  'EMAIL':       { color: '#0176d3', bg: '#d8edff', icon: I.mail, label: 'EMAIL' },
+  'LINKEDIN':    { color: '#0a66c2', bg: '#dce9f5', icon: I.linkedin, label: 'LINKEDIN' },
+  'FOLLOW-UP':   { color: '#7526c4', bg: '#ece1f9', icon: I.refresh, label: 'FOLLOW-UP' },
+  'RESEARCH':    { color: T.textWeak, bg: '#eee', icon: I.search, label: 'RESEARCH' },
+  'CREATE DEAL': { color: T.success, bg: T.successLight, icon: I.check, label: 'CREATE OPP' },
 };
 
-const priorityConfig = {
-  urgent:   { color: C.hot,  bg: C.hotBg,  label: 'Urgent' },
-  high:     { color: C.warm, bg: C.warmBg, label: 'High' },
-  standard: { color: C.blue, bg: C.blueBg, label: 'Standard' },
+const priCfg = {
+  urgent:   { color: T.destructive, bg: T.errorLight },
+  high:     { color: T.warning, bg: T.warningLight },
+  standard: { color: T.brandPrimaryActive, bg: '#d8edff' },
 };
 
-/* ═══════════════════════════════════════════
-   SLDS-style button helpers
-   ═══════════════════════════════════════════ */
-const sldsBtnBrand = {
-  background: C.brand, color: '#fff', border: 'none', borderRadius: '.25rem',
-  padding: '0 1rem', height: 32, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-  display: 'inline-flex', alignItems: 'center', gap: 6,
-};
-const sldsBtnNeutral = {
-  background: C.white, color: C.text, border: `1px solid ${C.border}`, borderRadius: '.25rem',
-  padding: '0 1rem', height: 32, fontSize: 13, fontWeight: 400, cursor: 'pointer',
-  display: 'inline-flex', alignItems: 'center', gap: 6,
-};
-const sldsBtnDestructive = {
-  ...sldsBtnBrand, background: C.hot,
-};
-const sldsBtnSuccess = {
-  ...sldsBtnBrand, background: C.green,
-};
+/* ═══════════════════════════════════════════════════════════════
+   SLDS PRIMITIVES
+   ═══════════════════════════════════════════════════════════════ */
+const BtnBrand = ({ children, onClick, style: s }) => (
+  <button onClick={onClick} style={{ background: T.brandPrimaryActive, color: '#fff', border: `1px solid ${T.brandPrimaryActive}`, borderRadius: T.radius, padding: '0 12px', height: 30, fontSize: 13, fontWeight: 400, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, ...s }}>{children}</button>
+);
+const BtnNeutral = ({ children, onClick, style: s }) => (
+  <button onClick={onClick} style={{ background: T.bgAlt, color: T.textDefault, border: `1px solid ${T.borderInput}`, borderRadius: T.radius, padding: '0 12px', height: 30, fontSize: 13, fontWeight: 400, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, ...s }}>{children}</button>
+);
+const BtnSuccess = ({ children, onClick, style: s }) => (
+  <button onClick={onClick} style={{ background: T.success, color: '#fff', border: `1px solid ${T.success}`, borderRadius: T.radius, padding: '0 12px', height: 30, fontSize: 13, fontWeight: 400, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, ...s }}>{children}</button>
+);
 
-/* ═══════════════════════════════════════════
-   SLDS Card wrapper
-   ═══════════════════════════════════════════ */
-function SLDSCard({ title, children, style: extra, headerRight, noPad }) {
+function Card({ title, children, headerRight, noPad, style: s }) {
   return (
-    <div style={{ background: C.white, borderRadius: C.cardRadius, boxShadow: C.cardShadow, overflow: 'hidden', ...extra }}>
+    <article style={{ background: T.bgAlt, borderRadius: T.radius, border: `1px solid ${T.borderDefault}`, boxShadow: T.shadow, ...s }}>
       {title && (
-        <div style={{
-          padding: '0.75rem 1rem', borderBottom: `1px solid ${C.borderLight}`,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{title}</span>
+        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${T.borderDefault}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: T.textDefault, margin: 0, lineHeight: 1.3 }}>{title}</h2>
           {headerRight}
         </div>
       )}
-      <div style={noPad ? {} : { padding: '0.75rem 1rem' }}>{children}</div>
-    </div>
+      <div style={noPad ? {} : { padding: '12px 16px' }}>{children}</div>
+    </article>
   );
 }
 
-/* ═══════════════════════════════════════════
-   MAIN APP
-   ═══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   APP SHELL
+   ═══════════════════════════════════════════════════════════════ */
 export default function App() {
-  const [activeView, setActiveView] = useState('queue');
-  const [selectedAccountId, setSelectedAccountId] = useState(null);
-  const [expandedAction, setExpandedAction] = useState(null);
-  const [completedActions, setCompletedActions] = useState(new Set());
+  const [view, setView] = useState('queue');
+  const [selAcct, setSelAcct] = useState(null);
+  const [expanded, setExpanded] = useState(null);
+  const [completed, setCompleted] = useState(new Set());
   const [toast, setToast] = useState(null);
-  const [recentlyCompleted, setRecentlyCompleted] = useState(new Set());
+  const [recent, setRecent] = useState(new Set());
 
-  const selectedAccount = accounts.find(a => a.id === selectedAccountId) || null;
-  const completedCount = completedActions.size;
-  const totalActions = dailyActions.length;
-  const callCount = dailyActions.filter(a => a.type === 'CALL').length;
-  const emailCount = dailyActions.filter(a => a.type === 'EMAIL').length;
-  const linkedinCount = dailyActions.filter(a => a.type === 'LINKEDIN').length;
-  const followUpCount = dailyActions.filter(a => ['FOLLOW-UP','RESEARCH','CREATE DEAL'].includes(a.type)).length;
-  const completedCalls = dailyActions.filter(a => a.type === 'CALL' && completedActions.has(a.id)).length;
-  const completedEmails = dailyActions.filter(a => a.type === 'EMAIL' && completedActions.has(a.id)).length;
+  const acct = accounts.find(a => a.id === selAcct) || null;
+  const total = dailyActions.length;
+  const done = completed.size;
+  const calls = dailyActions.filter(a => a.type === 'CALL').length;
+  const emails = dailyActions.filter(a => a.type === 'EMAIL').length;
+  const lis = dailyActions.filter(a => a.type === 'LINKEDIN').length;
+  const others = dailyActions.filter(a => ['FOLLOW-UP','RESEARCH','CREATE DEAL'].includes(a.type)).length;
+  const doneCalls = dailyActions.filter(a => a.type === 'CALL' && completed.has(a.id)).length;
+  const doneEmails = dailyActions.filter(a => a.type === 'EMAIL' && completed.has(a.id)).length;
 
-  const navigateToAccount = (id) => { setSelectedAccountId(id); setActiveView('detail'); };
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
-  const markComplete = (actionId) => {
-    setCompletedActions(p => { const n = new Set(p); n.add(actionId); return n; });
-    setRecentlyCompleted(p => { const n = new Set(p); n.add(actionId); return n; });
-    setTimeout(() => { setRecentlyCompleted(p => { const n = new Set(p); n.delete(actionId); return n; }); setExpandedAction(null); }, 800);
-    showToast('Action completed');
+  const goAcct = id => { setSelAcct(id); setView('detail'); };
+  const flash = msg => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+  const markDone = id => {
+    setCompleted(p => { const n = new Set(p); n.add(id); return n; });
+    setRecent(p => { const n = new Set(p); n.add(id); return n; });
+    setTimeout(() => { setRecent(p => { const n = new Set(p); n.delete(id); return n; }); setExpanded(null); }, 800);
+    flash('Action completed');
   };
-  const toggleExpand = (id) => setExpandedAction(expandedAction === id ? null : id);
+  const toggle = id => setExpanded(expanded === id ? null : id);
 
-  const tabs = [
+  const navTabs = [
     { id: 'queue', label: 'Action Queue' },
-    { id: 'signal', label: 'Signal Feed' },
+    { id: 'signal', label: 'Signals' },
     { id: 'performance', label: 'Performance' },
     { id: 'howItWorks', label: 'How It Works' },
   ];
-  const staticTabs = ['Leads','Accounts','Contacts','Opportunities','Reports'];
+  const sfdcTabs = ['Home','Leads','Accounts','Contacts','Opportunities','Reports','Dashboards'];
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: T.bgDefault, fontFamily: "'Salesforce Sans', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
 
-      {/* ═══ SALESFORCE GLOBAL HEADER ═══ */}
-      <header style={{
-        height: 48, background: C.navBg, display: 'flex', alignItems: 'center',
-        padding: '0 12px', flexShrink: 0, gap: 12,
-      }}>
-        {/* App launcher waffle */}
-        <div style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '.25rem', flexShrink: 0 }}>
-          {Icon.waffle()}
+      {/* ═══ GLOBAL HEADER (slds-global-header) ═══ */}
+      <div style={{ height: 44, background: T.bgInverse, display: 'flex', alignItems: 'center', padding: '0 8px 0 0', flexShrink: 0, zIndex: 10 }}>
+        {/* Waffle / App Launcher */}
+        <div style={{ width: 48, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', opacity: .85 }}>
+          {I.waffle()}
+        </div>
+        {/* Salesforce logo text */}
+        <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '-.3px', marginRight: 16 }}>salesforce</span>
+
+        {/* Global Search */}
+        <div style={{ flex: 1, maxWidth: 480, display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,.16)', borderRadius: T.radius, height: 30, padding: '0 10px', gap: 6, marginRight: 'auto' }}>
+          {I.search('rgba(255,255,255,.6)')}
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', userSelect: 'none' }}>Search...</span>
         </div>
 
-        {/* App name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 8 }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px' }}>Weave SDR</span>
-        </div>
-
-        {/* Tab navigation */}
-        <nav style={{ display: 'flex', gap: 0, height: '100%', alignItems: 'stretch' }}>
-          {tabs.map(t => {
-            const isActive = activeView === t.id || (activeView === 'detail' && t.id === 'queue');
-            return (
-              <button key={t.id} onClick={() => setActiveView(t.id)} style={{
-                background: 'none', border: 'none', color: isActive ? '#fff' : 'rgba(255,255,255,0.7)',
-                fontSize: 13, fontWeight: isActive ? 600 : 400, padding: '0 14px',
-                cursor: 'pointer', position: 'relative', letterSpacing: 0,
-              }}>
-                {t.label}
-                {isActive && <div style={{ position: 'absolute', bottom: 0, left: 8, right: 8, height: 3, background: '#fff', borderRadius: '3px 3px 0 0' }}/>}
-              </button>
-            );
-          })}
-          <div style={{ width: 1, background: 'rgba(255,255,255,0.15)', margin: '10px 4px' }}/>
-          {staticTabs.map(t => (
-            <button key={t} style={{
-              background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
-              fontSize: 13, padding: '0 12px', cursor: 'default',
-            }}>{t}</button>
+        {/* Global Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {[I.help, I.setup, I.bell].map((Ico, i) => (
+            <div key={i} style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: T.radius, cursor: 'pointer', position: 'relative' }}>
+              {Ico('rgba(255,255,255,.8)')}
+              {i === 2 && <span style={{ position: 'absolute', top: 2, right: 2, width: 14, height: 14, background: T.error, borderRadius: '50%', fontSize: 9, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${T.bgInverse}` }}>5</span>}
+            </div>
           ))}
-        </nav>
-
-        {/* Right side */}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Global search */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.12)',
-            borderRadius: '.25rem', padding: '5px 12px', minWidth: 200,
-          }}>
-            {Icon.search('rgba(255,255,255,0.7)')}
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Search Salesforce...</span>
-          </div>
-          {/* Bell */}
-          <div style={{ position: 'relative', cursor: 'pointer' }}>
-            {Icon.bell('rgba(255,255,255,0.8)')}
-            <div style={{
-              position: 'absolute', top: -6, right: -6, width: 16, height: 16,
-              background: C.hot, borderRadius: '50%', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700, border: `2px solid ${C.navBg}`,
-            }}>5</div>
-          </div>
-          {/* Avatar */}
-          <div style={{
-            width: 28, height: 28, borderRadius: '50%', background: '#1b96ff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, fontWeight: 700, color: '#fff', cursor: 'pointer',
-          }}>AR</div>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#7f8de1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', cursor: 'pointer', marginLeft: 6 }}>AR</div>
         </div>
-      </header>
+      </div>
 
-      {/* ═══ CONTENT ═══ */}
-      <main style={{ flex: 1, overflow: 'auto', padding: activeView === 'howItWorks' ? 0 : '1rem 1.5rem' }}>
-        {activeView === 'queue' && <QueueView {...{completedActions,completedCount,totalActions,expandedAction,toggleExpand,markComplete,navigateToAccount,recentlyCompleted,callCount,emailCount,linkedinCount,followUpCount,completedCalls,completedEmails}} />}
-        {activeView === 'detail' && selectedAccount && <AccountDetailView account={selectedAccount} onBack={() => setActiveView('queue')} navigateToAccount={navigateToAccount} />}
-        {activeView === 'signal' && <SignalFeedView navigateToAccount={navigateToAccount} />}
-        {activeView === 'performance' && <PerformanceView {...{completedCount,totalActions,completedCalls,completedEmails}} />}
-        {activeView === 'howItWorks' && <HowItWorksView />}
+      {/* ═══ CONTEXT BAR / NAV (slds-context-bar) ═══ */}
+      <div style={{ height: 40, background: T.bgInverseLight, display: 'flex', alignItems: 'stretch', padding: '0 0 0 12px', flexShrink: 0, borderBottom: `3px solid ${T.brandPrimary}` }}>
+        {/* App Name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingRight: 20, borderRight: '1px solid rgba(255,255,255,.15)', marginRight: 4 }}>
+          <div style={{ width: 24, height: 24, borderRadius: T.radius, background: T.brandPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {I.lightning('#fff')}
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 400, color: '#fff', whiteSpace: 'nowrap' }}>Weave SDR</span>
+        </div>
+
+        {/* Nav items */}
+        {navTabs.map(t => {
+          const active = view === t.id || (view === 'detail' && t.id === 'queue');
+          return (
+            <div key={t.id} onClick={() => setView(t.id)} style={{
+              display: 'flex', alignItems: 'center', padding: '0 16px', cursor: 'pointer',
+              borderBottom: active ? '3px solid #fff' : '3px solid transparent',
+              marginBottom: -3,
+              background: active ? 'rgba(255,255,255,.1)' : 'transparent',
+              transition: 'background .15s',
+            }}>
+              <span style={{ fontSize: 13, color: active ? '#fff' : T.textInverseWeak, fontWeight: active ? 600 : 400 }}>{t.label}</span>
+            </div>
+          );
+        })}
+
+        <div style={{ width: 1, background: 'rgba(255,255,255,.15)', margin: '8px 8px' }}/>
+
+        {sfdcTabs.map(t => (
+          <div key={t} style={{ display: 'flex', alignItems: 'center', padding: '0 12px', cursor: 'default' }}>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,.35)' }}>{t}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* ═══ PAGE CONTENT ═══ */}
+      <main style={{ flex: 1, overflow: 'auto', padding: view === 'howItWorks' ? 0 : '12px 24px 24px' }}>
+        {view === 'queue' && <QueueView {...{completed,done,total,expanded,toggle,markDone,goAcct,recent,calls,emails,lis,others,doneCalls,doneEmails}} />}
+        {view === 'detail' && acct && <AccountDetail account={acct} onBack={() => setView('queue')} goAcct={goAcct} />}
+        {view === 'signal' && <SignalFeed goAcct={goAcct} />}
+        {view === 'performance' && <Performance {...{done,total,doneCalls,doneEmails}} />}
+        {view === 'howItWorks' && <HowItWorks />}
       </main>
 
-      {/* ═══ SFDC-STYLE TOAST ═══ */}
+      {/* ═══ SLDS TOAST ═══ */}
       {toast && (
-        <div style={{
-          position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-          background: '#04844b', color: '#fff',
-          padding: '0 1rem', height: 40, borderRadius: '.25rem', fontSize: 13, fontWeight: 500,
-          display: 'flex', alignItems: 'center', gap: 8, zIndex: 10000,
-          boxShadow: '0 4px 12px rgba(0,0,0,.25)', animation: 'slideUp 0.3s ease',
-        }}>
-          {Icon.check('#fff')} {toast}
+        <div style={{ position: 'fixed', top: 90, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, animation: 'slideUp .25s ease' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: T.success, color: '#fff', padding: '0 16px', height: 42, borderRadius: T.radius, fontSize: 14, fontWeight: 400, boxShadow: '0 2px 8px rgba(0,0,0,.3)' }}>
+            <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{I.check('#fff')}</div>
+            {toast}
+          </div>
         </div>
       )}
     </div>
@@ -307,740 +241,546 @@ export default function App() {
 }
 
 
-/* ═══════════════════════════════════════════
-   VIEW 1: ACTION QUEUE
-   ═══════════════════════════════════════════ */
-function QueueView({ completedActions, completedCount, totalActions, expandedAction, toggleExpand, markComplete, navigateToAccount, recentlyCompleted, callCount, emailCount, linkedinCount, followUpCount, completedCalls, completedEmails }) {
-  const pct = (completedCount / totalActions) * 100;
-
+/* ═══════════════════════════════════════════════════════════════
+   QUEUE VIEW
+   ═══════════════════════════════════════════════════════════════ */
+function QueueView({ completed, done, total, expanded, toggle, markDone, goAcct, recent, calls, emails, lis, others, doneCalls, doneEmails }) {
+  const pct = total ? (done / total) * 100 : 0;
   return (
     <div style={{ maxWidth: 960, margin: '0 auto' }}>
-      {/* SLDS Page Header */}
-      <div style={{
-        background: C.white, borderRadius: C.cardRadius, boxShadow: C.cardShadow,
-        padding: '1rem 1.25rem', marginBottom: '1rem',
-      }}>
+      {/* Page header */}
+      <Card style={{ marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: '.25rem', background: '#0176d3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {Icon.lightning('#fff')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 40, height: 40, borderRadius: T.radius, background: '#7f8de1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {I.lightning('#fff')}
             </div>
             <div>
-              <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 400 }}>SDR Action Queue</div>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0, lineHeight: 1.2 }}>Alex's Daily Queue</h1>
+              <div style={{ fontSize: 11, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px' }}>Daily Action Queue</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: T.textDefault, lineHeight: 1.2 }}>Alex Rivera</div>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 13, color: C.textMuted }}>March 31, 2026</div>
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              background: C.greenBg, color: C.green, padding: '2px 8px',
-              borderRadius: '.75rem', fontSize: 11, fontWeight: 600, marginTop: 2,
-            }}>
-              {Icon.zap(C.green)} AI Confidence: High
+            <div style={{ fontSize: 13, color: T.textPlaceholder }}>April 1, 2026</div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: T.successLight, color: T.success, padding: '2px 8px', borderRadius: T.radiusPill, fontSize: 11, fontWeight: 700 }}>
+              {I.zap(T.success)} AI Confidence: High
             </span>
           </div>
         </div>
-
-        {/* Progress */}
-        <div style={{ background: '#e5e5e5', borderRadius: '1rem', height: 6, marginBottom: 10, overflow: 'hidden' }}>
-          <div style={{ height: '100%', borderRadius: '1rem', background: C.brand, width: `${pct}%`, transition: 'width 0.5s ease' }} />
+        {/* Progress bar */}
+        <div style={{ background: T.borderDefault, borderRadius: T.radiusPill, height: 8, overflow: 'hidden', marginBottom: 8 }}>
+          <div style={{ height: '100%', borderRadius: T.radiusPill, background: `linear-gradient(90deg, ${T.brandPrimary}, ${T.brandPrimaryActive})`, width: `${pct}%`, transition: 'width .5s ease' }} />
         </div>
-
-        {/* Stats pills */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Pill label="Actions" value={`${completedCount}/${totalActions}`} />
-            <Pill label="Calls" value={`${completedCalls}/${callCount}`} color={C.brand} />
-            <Pill label="Emails" value={`${completedEmails}/${emailCount}`} color={C.brand} />
-            <Pill label="LinkedIn" value={`${dailyActions.filter(a=>a.type==='LINKEDIN'&&completedActions.has(a.id)).length}/${linkedinCount}`} color="#0077b5" />
-            <Pill label="Other" value={`${dailyActions.filter(a=>['FOLLOW-UP','RESEARCH','CREATE DEAL'].includes(a.type)&&completedActions.has(a.id)).length}/${followUpCount}`} color={C.purple} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <Badge label="Actions" value={`${done}/${total}`} />
+            <Badge label="Calls" value={`${doneCalls}/${calls}`} c={T.brandPrimaryActive} />
+            <Badge label="Emails" value={`${doneEmails}/${emails}`} c={T.brandPrimaryActive} />
+            <Badge label="LinkedIn" value={`${dailyActions.filter(a=>a.type==='LINKEDIN'&&completed.has(a.id)).length}/${lis}`} c="#0a66c2" />
+            <Badge label="Other" value={`${dailyActions.filter(a=>['FOLLOW-UP','RESEARCH','CREATE DEAL'].includes(a.type)&&completed.has(a.id)).length}/${others}`} c="#7526c4" />
           </div>
-          <div style={{ fontSize: 12, color: C.textMuted, display: 'flex', alignItems: 'center', gap: 4 }}>
-            {Icon.clock()} Est. 2.5 hours
-          </div>
+          <span style={{ fontSize: 12, color: T.textPlaceholder, display: 'flex', alignItems: 'center', gap: 3 }}>{I.clock()} ~2.5 hrs</span>
         </div>
-      </div>
+      </Card>
 
-      {/* Action cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {dailyActions.map(action => (
-          <ActionCard key={action.id} action={action}
-            isCompleted={completedActions.has(action.id)}
-            isExpanded={expandedAction === action.id}
-            isRecentlyCompleted={recentlyCompleted.has(action.id)}
-            onToggle={() => toggleExpand(action.id)}
-            onComplete={() => markComplete(action.id)}
-            onNavigate={() => navigateToAccount(action.accountId)}
-          />
-        ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {dailyActions.map(a => <ActionRow key={a.id} a={a} isDone={completed.has(a.id)} isExp={expanded===a.id} isRecent={recent.has(a.id)} toggle={()=>toggle(a.id)} markDone={()=>markDone(a.id)} goAcct={()=>goAcct(a.accountId)} />)}
       </div>
     </div>
   );
 }
 
-function Pill({ label, value, color }) {
+function Badge({ label, value, c }) {
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12,
-      background: C.white, border: `1px solid ${C.borderLight}`, borderRadius: '.25rem',
-      padding: '3px 8px',
-    }}>
-      <span style={{ color: C.textMuted }}>{label}:</span>
-      <span style={{ color: color || C.text, fontWeight: 600 }}>{value}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, background: T.bgAlt, border: `1px solid ${T.borderDefault}`, borderRadius: T.radius, padding: '2px 8px' }}>
+      <span style={{ color: T.textPlaceholder }}>{label}:</span>
+      <span style={{ color: c || T.textDefault, fontWeight: 700 }}>{value}</span>
     </span>
   );
 }
 
-
-/* ═══════════════════════════════════════════
-   ACTION CARD
-   ═══════════════════════════════════════════ */
-function ActionCard({ action, isCompleted, isExpanded, isRecentlyCompleted, onToggle, onComplete, onNavigate }) {
-  const cfg = actionTypeConfig[action.type];
-  const pri = priorityConfig[action.priority];
-  const [hov, setHov] = useState(false);
-
+/* ═══════════════════════════════════════════════════════════════
+   ACTION ROW
+   ═══════════════════════════════════════════════════════════════ */
+function ActionRow({ a, isDone, isExp, isRecent, toggle, markDone, goAcct }) {
+  const cfg = actionCfg[a.type]; const pri = priCfg[a.priority];
   return (
-    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} style={{
-      background: isCompleted ? '#f9fdf9' : C.white,
-      borderRadius: C.cardRadius,
-      boxShadow: isExpanded ? `0 0 0 1px ${C.brand}` : isRecentlyCompleted ? `0 0 0 2px ${C.green}` : C.cardShadow,
-      transition: 'all 0.2s',
-      opacity: isCompleted && !isRecentlyCompleted ? 0.5 : 1,
-      overflow: 'hidden',
+    <div style={{
+      background: isDone ? '#f8fcf8' : T.bgAlt,
+      borderRadius: T.radius,
+      border: `1px solid ${isExp ? T.brandPrimary : isRecent ? T.success : T.borderDefault}`,
+      boxShadow: isExp ? `0 0 0 1px ${T.brandPrimary}` : T.shadow,
+      opacity: isDone && !isRecent ? .45 : 1,
+      overflow: 'hidden', transition: 'all .2s',
     }}>
-      {/* Row */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', gap: 10, cursor: 'pointer' }} onClick={onToggle}>
-        {/* Priority # */}
-        <div style={{
-          width: 28, height: 28, borderRadius: '.25rem', flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 12, fontWeight: 700,
-          background: isCompleted ? C.greenBg : pri.bg, color: isCompleted ? C.green : pri.color,
-        }}>
-          {isCompleted ? Icon.check(C.green) : `#${action.id}`}
+      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 8, cursor: 'pointer' }} onClick={toggle}>
+        <div style={{ width: 26, height: 26, borderRadius: T.radius, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: isDone ? T.successLight : pri.bg, color: isDone ? T.success : pri.color }}>
+          {isDone ? I.check(T.success) : `${a.id}`}
         </div>
-
-        {/* Type badge */}
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          background: cfg.bg, color: cfg.color,
-          padding: '2px 8px', borderRadius: '.25rem', fontSize: 10,
-          fontWeight: 700, letterSpacing: '.3px', textTransform: 'uppercase', flexShrink: 0,
-        }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: cfg.bg, color: cfg.color, padding: '1px 7px', borderRadius: T.radius, fontSize: 10, fontWeight: 700, letterSpacing: '.3px', textTransform: 'uppercase', flexShrink: 0 }}>
           {cfg.icon(cfg.color)} {cfg.label}
         </span>
-
-        {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: 13, fontWeight: 600, color: C.text,
-            textDecoration: isCompleted ? 'line-through' : 'none',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {action.contactName && <span>{action.contactName} — </span>}
-            <span onClick={e => { e.stopPropagation(); onNavigate(); }} style={{ color: C.brand, cursor: 'pointer', fontWeight: 500 }}>{action.company}</span>
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.textDefault, textDecoration: isDone ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {a.contactName && <span>{a.contactName} — </span>}
+            <span onClick={e=>{e.stopPropagation();goAcct()}} style={{ color: T.textLink, cursor: 'pointer', fontWeight: 400 }}>{a.company}</span>
           </div>
-          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {action.reason}
-          </div>
+          <div style={{ fontSize: 12, color: T.textPlaceholder, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.reason}</div>
         </div>
-
-        {/* Right */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{action.timeSlot}</div>
-            <div style={{ fontSize: 11, color: C.textMuted }}>{action.duration}</div>
-          </div>
-          {!isCompleted && (
-            <button onClick={e => { e.stopPropagation(); onToggle(); }} style={{
-              ...(isExpanded ? sldsBtnNeutral : sldsBtnBrand),
-              height: 28, fontSize: 12, padding: '0 10px',
-            }}>
-              {isExpanded ? 'Close' : <>{Icon.play()} Start</>}
-            </button>
-          )}
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: T.textDefault }}>{a.timeSlot}</div>
+          <div style={{ fontSize: 11, color: T.textPlaceholder }}>{a.duration}</div>
         </div>
+        {!isDone && (
+          isExp
+            ? <BtnNeutral onClick={e=>{e.stopPropagation();toggle()}} style={{height:26,fontSize:11,padding:'0 8px'}}>Close</BtnNeutral>
+            : <BtnBrand onClick={e=>{e.stopPropagation();toggle()}} style={{height:26,fontSize:11,padding:'0 8px'}}>{I.play()} Start</BtnBrand>
+        )}
       </div>
-
-      {/* Expanded */}
-      {isExpanded && !isCompleted && <ExpandedPanel action={action} onComplete={onComplete} onNavigate={onNavigate} />}
+      {isExp && !isDone && <ExpandedPanel a={a} markDone={markDone} goAcct={goAcct} />}
     </div>
   );
 }
 
-
-/* ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    EXPANDED PANELS
-   ═══════════════════════════════════════════ */
-function ExpandedPanel({ action, onComplete, onNavigate }) {
-  if (action.type === 'CALL') return <CallPanel action={action} onComplete={onComplete} onNavigate={onNavigate} />;
-  if (action.type === 'EMAIL' || action.type === 'FOLLOW-UP') return <EmailPanel action={action} onComplete={onComplete} />;
-  if (action.type === 'LINKEDIN') return <LinkedInPanel action={action} onComplete={onComplete} />;
-  if (action.type === 'RESEARCH') return <ResearchPanel action={action} onComplete={onComplete} onNavigate={onNavigate} />;
-  if (action.type === 'CREATE DEAL') return <DealPanel action={action} onComplete={onComplete} />;
+   ═══════════════════════════════════════════════════════════════ */
+function ExpandedPanel({ a, markDone, goAcct }) {
+  if (a.type === 'CALL') return <CallPanel a={a} markDone={markDone} goAcct={goAcct} />;
+  if (a.type === 'EMAIL' || a.type === 'FOLLOW-UP') return <EmailPanel a={a} markDone={markDone} />;
+  if (a.type === 'LINKEDIN') return <LIPanel a={a} markDone={markDone} />;
+  if (a.type === 'RESEARCH') return <ResearchPanel a={a} markDone={markDone} goAcct={goAcct} />;
+  if (a.type === 'CREATE DEAL') return <DealPanel a={a} markDone={markDone} />;
   return null;
 }
 
-function CallPanel({ action, onComplete, onNavigate }) {
+function CallPanel({ a, markDone, goAcct }) {
   return (
-    <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${C.borderLight}`, animation: 'fadeIn 0.2s ease' }}>
-      <div style={{ paddingTop: 12 }}>
-        <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 240px', background: C.blueBg, borderRadius: C.cardRadius, padding: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.brand, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>Contact</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{action.contactName}</div>
-            <div style={{ fontSize: 12, color: C.textLight, marginBottom: 6 }}>{action.contactTitle} — {action.company}</div>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: C.white, border: `2px solid ${C.green}`, borderRadius: '.25rem', padding: '6px 14px', cursor: 'pointer',
-            }}>
-              {Icon.phone(C.green)}
-              <span style={{ fontSize: 15, fontWeight: 700, color: C.green, letterSpacing: '.5px' }}>{action.contactPhone}</span>
+    <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${T.borderDefault}`, animation: 'fadeIn .2s ease' }}>
+      <div style={{ paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 220px', background: T.bgHighlight, borderRadius: T.radius, padding: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.brandPrimaryActive, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Contact</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: T.textDefault }}>{a.contactName}</div>
+            <div style={{ fontSize: 12, color: T.textWeak, marginBottom: 6 }}>{a.contactTitle} — {a.company}</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: T.bgAlt, border: `2px solid ${T.success}`, borderRadius: T.radius, padding: '5px 12px', cursor: 'pointer' }}>
+              {I.phone(T.success)}
+              <span style={{ fontSize: 14, fontWeight: 700, color: T.success, letterSpacing: '.5px' }}>{a.contactPhone}</span>
             </div>
           </div>
-          <div style={{ flex: '1 1 280px', background: C.bg, borderRadius: C.cardRadius, padding: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>Quick Brief</div>
-            <ul style={{ margin: 0, paddingLeft: 14, fontSize: 12, color: C.textLight, lineHeight: 1.7 }}>
-              {action.callBrief?.map((b, i) => <li key={i}>{b}</li>)}
+          <div style={{ flex: '1 1 260px', background: T.bgDefault, borderRadius: T.radius, padding: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Quick Brief</div>
+            <ul style={{ margin: 0, paddingLeft: 14, fontSize: 12, color: T.textWeak, lineHeight: 1.7 }}>
+              {a.callBrief?.map((b, i) => <li key={i}>{b}</li>)}
             </ul>
           </div>
         </div>
-
-        <div style={{ background: C.bg, border: `1px solid ${C.borderLight}`, borderRadius: C.cardRadius, padding: 12, marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.brand, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>Opening Line</div>
-          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6, fontStyle: 'italic' }}>"{action.openingLine}"</div>
+        <div style={{ background: T.bgDefault, border: `1px solid ${T.borderDefault}`, borderRadius: T.radius, padding: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: T.brandPrimaryActive, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Opening Line</div>
+          <div style={{ fontSize: 13, color: T.textDefault, lineHeight: 1.6, fontStyle: 'italic' }}>"{a.openingLine}"</div>
         </div>
-
-        <div style={{ display: 'flex', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 240px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>Discovery Questions</div>
-            {action.discoveryQuestions?.map((q, i) => (
-              <div key={i} style={{ fontSize: 12, color: C.text, padding: '5px 8px', marginBottom: 3, background: C.white, border: `1px solid ${C.borderLight}`, borderRadius: C.cardRadius, lineHeight: 1.5 }}>
-                {i+1}. {q}
-              </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 220px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Discovery Questions</div>
+            {a.discoveryQuestions?.map((q, i) => (
+              <div key={i} style={{ fontSize: 12, color: T.textDefault, padding: '4px 8px', marginBottom: 2, background: T.bgAlt, border: `1px solid ${T.borderDefault}`, borderRadius: T.radius, lineHeight: 1.5 }}>{i+1}. {q}</div>
             ))}
           </div>
-          <div style={{ flex: '1 1 240px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>Objection Handler</div>
-            <div style={{ fontSize: 12, color: C.text, padding: '6px 8px', background: C.warmBg, borderRadius: C.cardRadius, lineHeight: 1.5, marginBottom: 6 }}>{action.objectionHandler}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>Suggested CTA</div>
-            <div style={{ fontSize: 12, color: C.green, fontWeight: 600, padding: '6px 8px', background: C.greenBg, borderRadius: C.cardRadius }}>{action.suggestedCTA}</div>
+          <div style={{ flex: '1 1 220px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Objection Handler</div>
+            <div style={{ fontSize: 12, color: T.textDefault, padding: '5px 8px', background: T.warningLight, borderRadius: T.radius, lineHeight: 1.5, marginBottom: 6 }}>{a.objectionHandler}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 3 }}>Suggested CTA</div>
+            <div style={{ fontSize: 12, color: T.success, fontWeight: 600, padding: '5px 8px', background: T.successLight, borderRadius: T.radius }}>{a.suggestedCTA}</div>
           </div>
         </div>
-
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={onComplete} style={sldsBtnSuccess}>{Icon.check('#fff')} Mark Complete</button>
-          <button style={sldsBtnNeutral}>Reschedule</button>
-          <button onClick={onNavigate} style={{...sldsBtnNeutral, color: C.brand}}>View Account</button>
+          <BtnSuccess onClick={markDone}>{I.check('#fff')} Mark Complete</BtnSuccess>
+          <BtnNeutral>Reschedule</BtnNeutral>
+          <BtnNeutral onClick={goAcct} style={{color:T.textLink}}>View Account</BtnNeutral>
         </div>
       </div>
     </div>
   );
 }
 
-function EmailPanel({ action, onComplete }) {
+function EmailPanel({ a, markDone }) {
   return (
-    <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${C.borderLight}`, animation: 'fadeIn 0.2s ease' }}>
-      <div style={{ paddingTop: 12 }}>
-        <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: C.cardRadius, overflow: 'hidden', marginBottom: 10 }}>
-          <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.borderLight}`, display: 'flex', gap: 6, fontSize: 12 }}>
-            <span style={{ color: C.textMuted }}>To:</span>
-            <span style={{ color: C.text, fontWeight: 500 }}>{action.contactName} &lt;{action.contactEmail}&gt;</span>
+    <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${T.borderDefault}`, animation: 'fadeIn .2s ease' }}>
+      <div style={{ paddingTop: 10 }}>
+        <div style={{ background: T.bgAlt, border: `1px solid ${T.borderInput}`, borderRadius: T.radius, overflow: 'hidden', marginBottom: 10 }}>
+          <div style={{ padding: '7px 12px', borderBottom: `1px solid ${T.borderDefault}`, fontSize: 12, display: 'flex', gap: 6 }}>
+            <span style={{ color: T.textPlaceholder }}>To:</span><span style={{ fontWeight: 500 }}>{a.contactName} &lt;{a.contactEmail}&gt;</span>
           </div>
-          <div style={{ padding: '8px 12px', borderBottom: `1px solid ${C.borderLight}`, display: 'flex', gap: 6, fontSize: 12 }}>
-            <span style={{ color: C.textMuted }}>Subject:</span>
-            <span style={{ color: C.text, fontWeight: 600 }}>{action.emailSubject}</span>
+          <div style={{ padding: '7px 12px', borderBottom: `1px solid ${T.borderDefault}`, fontSize: 12, display: 'flex', gap: 6 }}>
+            <span style={{ color: T.textPlaceholder }}>Subject:</span><span style={{ fontWeight: 600 }}>{a.emailSubject}</span>
           </div>
-          <div style={{ padding: 12, fontSize: 13, color: C.text, lineHeight: 1.7, whiteSpace: 'pre-line', background: '#fafbfc' }}>
-            {action.emailBody}
-          </div>
+          <div style={{ padding: 12, fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-line', background: '#fafbfc' }}>{a.emailBody}</div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={onComplete} style={sldsBtnBrand}>{Icon.send()} Send Email</button>
-          <button style={sldsBtnNeutral}>Edit Draft</button>
-          <button style={sldsBtnNeutral}>Reschedule</button>
+          <BtnBrand onClick={markDone}>{I.send()} Send Email</BtnBrand>
+          <BtnNeutral>Edit Draft</BtnNeutral>
+          <BtnNeutral>Reschedule</BtnNeutral>
         </div>
       </div>
     </div>
   );
 }
 
-function LinkedInPanel({ action, onComplete }) {
+function LIPanel({ a, markDone }) {
   return (
-    <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${C.borderLight}`, animation: 'fadeIn 0.2s ease' }}>
-      <div style={{ paddingTop: 12 }}>
-        <div style={{ background: '#f0f5f8', border: '1px solid #d0dbe4', borderRadius: C.cardRadius, padding: 14, marginBottom: 10 }}>
+    <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${T.borderDefault}`, animation: 'fadeIn .2s ease' }}>
+      <div style={{ paddingTop: 10 }}>
+        <div style={{ background: '#f0f5f8', border: '1px solid #ccd8e4', borderRadius: T.radius, padding: 12, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            {Icon.linkedin('#0077b5')}
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#0077b5' }}>LinkedIn Message</span>
+            {I.linkedin('#0a66c2')}
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#0a66c2' }}>LinkedIn Message</span>
           </div>
-          <div style={{ background: C.white, borderRadius: C.cardRadius, padding: 12, fontSize: 13, color: C.text, lineHeight: 1.7, whiteSpace: 'pre-line', border: '1px solid #d0dbe4' }}>
-            {action.linkedinMessage}
-          </div>
+          <div style={{ background: T.bgAlt, borderRadius: T.radius, padding: 10, fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-line', border: '1px solid #ccd8e4' }}>{a.linkedinMessage}</div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={onComplete} style={{...sldsBtnBrand, background: '#0077b5'}}>{Icon.check('#fff')} Mark Complete</button>
-          <button style={sldsBtnNeutral}>Open LinkedIn</button>
+          <BtnBrand onClick={markDone} style={{background:'#0a66c2',borderColor:'#0a66c2'}}>{I.check('#fff')} Mark Complete</BtnBrand>
+          <BtnNeutral>Open LinkedIn</BtnNeutral>
         </div>
       </div>
     </div>
   );
 }
 
-function ResearchPanel({ action, onComplete, onNavigate }) {
+function ResearchPanel({ a, markDone, goAcct }) {
   return (
-    <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${C.borderLight}`, animation: 'fadeIn 0.2s ease' }}>
-      <div style={{ paddingTop: 12 }}>
-        <div style={{ background: C.bg, borderRadius: C.cardRadius, padding: 14, marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Research Checklist</div>
-          {action.researchTasks?.map((task, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '5px 0', borderBottom: i < action.researchTasks.length - 1 ? `1px solid ${C.borderLight}` : 'none' }}>
-              <div style={{ width: 16, height: 16, borderRadius: '.125rem', border: `2px solid ${C.border}`, flexShrink: 0, marginTop: 1, cursor: 'pointer' }} />
-              <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>{task}</span>
+    <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${T.borderDefault}`, animation: 'fadeIn .2s ease' }}>
+      <div style={{ paddingTop: 10 }}>
+        <div style={{ background: T.bgDefault, borderRadius: T.radius, padding: 12, marginBottom: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Research Checklist</div>
+          {a.researchTasks?.map((t, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0', borderBottom: i < a.researchTasks.length - 1 ? `1px solid ${T.borderDefault}` : 'none' }}>
+              <div style={{ width: 16, height: 16, borderRadius: 3, border: `2px solid ${T.borderInput}`, flexShrink: 0, marginTop: 1, cursor: 'pointer' }} />
+              <span style={{ fontSize: 12, lineHeight: 1.5 }}>{t}</span>
             </div>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={onComplete} style={sldsBtnSuccess}>{Icon.check('#fff')} Mark Complete</button>
-          <button onClick={onNavigate} style={{...sldsBtnNeutral, color: C.brand}}>View Account</button>
+          <BtnSuccess onClick={markDone}>{I.check('#fff')} Mark Complete</BtnSuccess>
+          <BtnNeutral onClick={goAcct} style={{color:T.textLink}}>View Account</BtnNeutral>
         </div>
       </div>
     </div>
   );
 }
 
-function DealPanel({ action, onComplete }) {
-  const d = action.dealDetails;
+function DealPanel({ a, markDone }) {
+  const d = a.dealDetails;
   return (
-    <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${C.borderLight}`, animation: 'fadeIn 0.2s ease' }}>
-      <div style={{ paddingTop: 12 }}>
-        <div style={{ background: C.greenBg, borderRadius: C.cardRadius, padding: 14, marginBottom: 10, border: `1px solid #a8dda0` }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.green, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 8 }}>Opportunity to Create</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px' }}>
-            <DealField label="Deal Name" value={d.dealName} />
-            <DealField label="Amount" value={d.amount} />
-            <DealField label="Locations" value={d.seats} />
-            <DealField label="Stage" value={d.stage} />
-            <DealField label="Close Date" value={d.closeDate} />
-            <DealField label="Primary Contact" value={d.primaryContact} />
+    <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${T.borderDefault}`, animation: 'fadeIn .2s ease' }}>
+      <div style={{ paddingTop: 10 }}>
+        <div style={{ background: T.successLight, borderRadius: T.radius, padding: 12, marginBottom: 10, border: `1px solid #a3d89c` }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: T.success, textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Opportunity to Create</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
+            <DF l="Opp Name" v={d.dealName} /><DF l="Amount" v={d.amount} /><DF l="Locations" v={d.seats} /><DF l="Stage" v={d.stage} /><DF l="Close Date" v={d.closeDate} /><DF l="Primary Contact" v={d.primaryContact} />
           </div>
-          <div style={{ marginTop: 6 }}><DealField label="Notes" value={d.notes} /></div>
+          <div style={{ marginTop: 4 }}><DF l="Notes" v={d.notes} /></div>
         </div>
-        <button onClick={onComplete} style={sldsBtnSuccess}>{Icon.check('#fff')} Create Opportunity</button>
+        <BtnSuccess onClick={markDone}>{I.check('#fff')} Create Opportunity</BtnSuccess>
       </div>
     </div>
   );
 }
-
-function DealField({ label, value }) {
-  return (
-    <div>
-      <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.3px' }}>{label}</div>
-      <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{value}</div>
-    </div>
-  );
+function DF({ l, v }) {
+  return <div><div style={{ fontSize: 10, color: T.textPlaceholder, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.3px' }}>{l}</div><div style={{ fontSize: 13, fontWeight: 500 }}>{v}</div></div>;
 }
 
 
-/* ═══════════════════════════════════════════
-   VIEW 2: ACCOUNT DETAIL
-   ═══════════════════════════════════════════ */
-function AccountDetailView({ account, onBack, navigateToAccount }) {
-  const accountActions = dailyActions.filter(a => a.accountId === account.id);
-
+/* ═══════════════════════════════════════════════════════════════
+   ACCOUNT DETAIL
+   ═══════════════════════════════════════════════════════════════ */
+function AccountDetail({ account: ac, onBack, goAcct }) {
+  const acts = dailyActions.filter(a => a.accountId === ac.id);
   return (
     <div style={{ maxWidth: 960, margin: '0 auto' }}>
-      {/* Breadcrumb */}
-      <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: C.brand, fontSize: 12, cursor: 'pointer', padding: 0, marginBottom: 8 }}>
-        {Icon.arrowLeft(C.brand)} Back to Action Queue
-      </button>
+      <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: T.textLink, fontSize: 12, cursor: 'pointer', padding: 0, marginBottom: 8 }}>{I.arrowLeft(T.textLink)} Back to Action Queue</button>
 
-      {/* Record header */}
-      <SLDSCard style={{ marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ width: 40, height: 40, borderRadius: '.25rem', background: '#0176d3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: '#fff' }}>
-              {account.company[0]}
-            </div>
+      <Card style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ width: 44, height: 44, borderRadius: T.radius, background: '#7f8de1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: '#fff' }}>{ac.company[0]}</div>
             <div>
-              <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '.5px' }}>Account</div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: 0 }}>{account.company}</h2>
-              <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{account.size} &middot; {account.location} &middot; {account.industry}</div>
+              <div style={{ fontSize: 11, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px' }}>Account</div>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{ac.company}</h2>
+              <div style={{ fontSize: 12, color: T.textPlaceholder }}>{ac.size} &middot; {ac.location} &middot; {ac.industry}</div>
             </div>
           </div>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            background: account.aiScore >= 85 ? C.hotBg : C.warmBg,
-            color: account.aiScore >= 85 ? C.hot : C.warm,
-            padding: '4px 12px', borderRadius: '.75rem', fontSize: 13, fontWeight: 700,
-          }}>
-            AI Score: {account.aiScore}
-          </span>
+          <span style={{ background: ac.aiScore >= 85 ? T.errorLight : T.warningLight, color: ac.aiScore >= 85 ? T.destructive : T.warning, padding: '3px 10px', borderRadius: T.radiusPill, fontSize: 13, fontWeight: 700 }}>AI Score: {ac.aiScore}</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
-          <InfoBlock label="Revenue" value={account.revenue} />
-          <InfoBlock label="Current Tools" value={account.currentTools} />
-          <InfoBlock label="Deal Value" value={account.dealValue} />
-          <InfoBlock label="Locations" value={account.seats} />
-          <InfoBlock label="Website" value={account.website} />
-          <InfoBlock label="Founded" value={account.founded} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8 }}>
+          <DF l="Revenue" v={ac.revenue} /><DF l="Current Tools" v={ac.currentTools} /><DF l="Deal Value" v={ac.dealValue} /><DF l="Locations" v={ac.seats} /><DF l="Website" v={ac.website} /><DF l="Founded" v={ac.founded} />
         </div>
-      </SLDSCard>
+      </Card>
 
-      {/* AI rationale */}
-      <SLDSCard title="Why AI Prioritized This Account" style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 13, color: C.textLight, lineHeight: 1.7, marginBottom: 12 }}>{account.whyPrioritized}</div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <ScoreBar label="Fit" value={account.fitScore} color={C.brand} />
-          <ScoreBar label="Intent" value={account.intentScore} color={C.warm} />
-          <ScoreBar label="Timing" value={account.timingScore} color={C.purple} />
+      <Card title="Why AI Prioritized This Account" style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 13, color: T.textWeak, lineHeight: 1.7, marginBottom: 10 }}>{ac.whyPrioritized}</div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <SB l="Fit" v={ac.fitScore} c={T.brandPrimaryActive} /><SB l="Intent" v={ac.intentScore} c={T.warning} /><SB l="Timing" v={ac.timingScore} c="#7526c4" />
         </div>
-      </SLDSCard>
+      </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-        <SLDSCard title="Key Contacts">
-          {account.contacts.filter(c => c.name !== 'TBD').map((ct, i) => (
-            <div key={i} style={{ padding: '8px 0', borderBottom: i < account.contacts.length - 1 ? `1px solid ${C.borderLight}` : 'none' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{ct.name}</span>
-                {ct.isPrimary && <span style={{ fontSize: 9, fontWeight: 700, color: C.brand, background: C.blueBg, padding: '1px 5px', borderRadius: '.25rem', textTransform: 'uppercase' }}>Primary</span>}
+        <Card title="Key Contacts">
+          {ac.contacts.filter(c => c.name !== 'TBD').map((ct, i) => (
+            <div key={i} style={{ padding: '6px 0', borderBottom: i < ac.contacts.length - 1 ? `1px solid ${T.borderDefault}` : 'none' }}>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{ct.name}</span>
+                {ct.isPrimary && <span style={{ fontSize: 9, fontWeight: 700, color: T.brandPrimaryActive, background: T.bgHighlight, padding: '1px 4px', borderRadius: T.radius, textTransform: 'uppercase' }}>Primary</span>}
               </div>
-              <div style={{ fontSize: 12, color: C.textMuted }}>{ct.title}</div>
-              {ct.phone && <div style={{ fontSize: 12, color: C.green, marginTop: 1 }}>{ct.phone}</div>}
-              {ct.email && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>{ct.email}</div>}
+              <div style={{ fontSize: 12, color: T.textPlaceholder }}>{ct.title}</div>
+              {ct.phone && <div style={{ fontSize: 12, color: T.success }}>{ct.phone}</div>}
+              {ct.email && <div style={{ fontSize: 12, color: T.textPlaceholder }}>{ct.email}</div>}
             </div>
           ))}
-        </SLDSCard>
-
-        <SLDSCard title={`Today's Actions (${accountActions.length})`}>
-          {accountActions.map((a, i) => {
-            const cfg = actionTypeConfig[a.type];
-            return (
-              <div key={i} style={{ padding: '6px 0', borderBottom: i < accountActions.length - 1 ? `1px solid ${C.borderLight}` : 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: cfg.color, background: cfg.bg, padding: '1px 6px', borderRadius: '.25rem', flexShrink: 0 }}>{cfg.label}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, color: C.text, fontWeight: 500 }}>{a.action}</div>
-                  <div style={{ fontSize: 11, color: C.textMuted }}>{a.timeSlot} &middot; {a.duration}</div>
-                </div>
-              </div>
-            );
-          })}
-          {accountActions.length === 0 && <div style={{ fontSize: 12, color: C.textMuted, padding: '12px 0' }}>No actions scheduled.</div>}
-        </SLDSCard>
+        </Card>
+        <Card title={`Today's Actions (${acts.length})`}>
+          {acts.map((a, i) => { const c = actionCfg[a.type]; return (
+            <div key={i} style={{ padding: '5px 0', borderBottom: i < acts.length-1 ? `1px solid ${T.borderDefault}` : 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: c.color, background: c.bg, padding: '1px 5px', borderRadius: T.radius }}>{c.label}</span>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 500 }}>{a.action}</div><div style={{ fontSize: 11, color: T.textPlaceholder }}>{a.timeSlot} &middot; {a.duration}</div></div>
+            </div>
+          ); })}
+          {!acts.length && <div style={{ fontSize: 12, color: T.textPlaceholder, padding: 10 }}>No actions scheduled.</div>}
+        </Card>
       </div>
 
-      {/* Signal Timeline */}
-      <SLDSCard title="Signal Timeline" style={{ marginBottom: 12 }}>
-        {account.signals.map((s, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 0', borderBottom: i < account.signals.length - 1 ? `1px solid ${C.borderLight}` : 'none' }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 4, background: s.strength === 'hot' ? C.hot : C.warm }} />
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: C.text }}>{s.type}</div>
-              <div style={{ fontSize: 12, color: C.textLight, lineHeight: 1.5 }}>{s.detail}</div>
-              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>{s.time}</div>
-            </div>
+      <Card title="Signal Timeline" style={{ marginBottom: 12 }}>
+        {ac.signals.map((s, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, padding: '6px 0', borderBottom: i < ac.signals.length-1 ? `1px solid ${T.borderDefault}` : 'none' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 4, background: s.strength==='hot' ? T.error : T.warning }} />
+            <div><div style={{ fontSize: 12, fontWeight: 500 }}>{s.type}</div><div style={{ fontSize: 12, color: T.textWeak, lineHeight: 1.5 }}>{s.detail}</div><div style={{ fontSize: 11, color: T.textPlaceholder }}>{s.time}</div></div>
           </div>
         ))}
-      </SLDSCard>
+      </Card>
 
-      {/* Call Script */}
-      {account.callScript && (
-        <SLDSCard title="AI Call Script" style={{ marginBottom: 12 }}>
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.brand, textTransform: 'uppercase', marginBottom: 3 }}>Opening</div>
-            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6, fontStyle: 'italic', background: C.bg, padding: 10, borderRadius: C.cardRadius }}>"{account.callScript.opening}"</div>
+      {ac.callScript && (
+        <Card title="AI Call Script" style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.brandPrimaryActive, textTransform: 'uppercase', marginBottom: 2 }}>Opening</div>
+            <div style={{ fontSize: 13, fontStyle: 'italic', background: T.bgDefault, padding: 8, borderRadius: T.radius, lineHeight: 1.6 }}>"{ac.callScript.opening}"</div>
           </div>
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', marginBottom: 3 }}>Discovery Questions</div>
-            {account.callScript.discoveryQuestions.map((q, i) => (
-              <div key={i} style={{ fontSize: 12, color: C.text, padding: '4px 8px', marginBottom: 2, background: C.bg, borderRadius: C.cardRadius, lineHeight: 1.5 }}>{i+1}. {q}</div>
-            ))}
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', marginBottom: 2 }}>Discovery Questions</div>
+            {ac.callScript.discoveryQuestions.map((q, i) => <div key={i} style={{ fontSize: 12, padding: '3px 8px', marginBottom: 2, background: T.bgDefault, borderRadius: T.radius, lineHeight: 1.5 }}>{i+1}. {q}</div>)}
           </div>
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', marginBottom: 3 }}>Objection Handler</div>
-            <div style={{ fontSize: 12, color: C.text, padding: '6px 8px', background: C.warmBg, borderRadius: C.cardRadius, lineHeight: 1.5 }}>{account.callScript.objectionHandler}</div>
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', marginBottom: 2 }}>Objection Handler</div>
+            <div style={{ fontSize: 12, padding: '4px 8px', background: T.warningLight, borderRadius: T.radius, lineHeight: 1.5 }}>{ac.callScript.objectionHandler}</div>
           </div>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', marginBottom: 3 }}>Suggested CTA</div>
-            <div style={{ fontSize: 12, color: C.green, fontWeight: 600, padding: '6px 8px', background: C.greenBg, borderRadius: C.cardRadius }}>{account.callScript.suggestedCTA}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', marginBottom: 2 }}>Suggested CTA</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: T.success, padding: '4px 8px', background: T.successLight, borderRadius: T.radius }}>{ac.callScript.suggestedCTA}</div>
           </div>
-        </SLDSCard>
+        </Card>
       )}
     </div>
   );
 }
 
-function InfoBlock({ label, value }) {
-  return (
-    <div>
-      <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.3px' }}>{label}</div>
-      <div style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{value}</div>
-    </div>
-  );
-}
-
-function ScoreBar({ label, value, color }) {
+function SB({ l, v, c }) {
   return (
     <div style={{ flex: 1 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-        <span style={{ fontSize: 11, color: C.textMuted }}>{label}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color }}>{value}</span>
-      </div>
-      <div style={{ height: 6, background: '#e5e5e5', borderRadius: '1rem', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${value}%`, background: color, borderRadius: '1rem', transition: 'width 0.5s' }} />
-      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}><span style={{ fontSize: 11, color: T.textPlaceholder }}>{l}</span><span style={{ fontSize: 11, fontWeight: 700, color: c }}>{v}</span></div>
+      <div style={{ height: 6, background: T.borderDefault, borderRadius: T.radiusPill, overflow: 'hidden' }}><div style={{ height: '100%', width: `${v}%`, background: c, borderRadius: T.radiusPill, transition: 'width .5s' }} /></div>
     </div>
   );
 }
 
 
-/* ═══════════════════════════════════════════
-   VIEW 3: SIGNAL FEED
-   ═══════════════════════════════════════════ */
-function SignalFeedView({ navigateToAccount }) {
+/* ═══════════════════════════════════════════════════════════════
+   SIGNAL FEED
+   ═══════════════════════════════════════════════════════════════ */
+function SignalFeed({ goAcct }) {
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      <SLDSCard title="Signal Feed" headerRight={
-        <div style={{ display: 'flex', gap: 4 }}>
-          <FilterChip label="All" active />
-          <FilterChip label="Hot" />
-          <FilterChip label="Warm" />
-        </div>
-      } noPad>
-        <div>
-          {signalFeed.map((s, i) => (
-            <div key={s.id} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 1rem',
-              borderBottom: i < signalFeed.length - 1 ? `1px solid ${C.borderLight}` : 'none',
-              background: i % 2 === 0 ? '#fafaf9' : C.white,
-            }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: s.strength === 'hot' ? C.hot : C.warm }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <span onClick={() => navigateToAccount(s.accountId)} style={{ fontSize: 13, color: C.brand, cursor: 'pointer', fontWeight: 600 }}>{s.account}</span>
-                <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>{s.action}</div>
-              </div>
-              <div style={{ fontSize: 11, color: C.textMuted, whiteSpace: 'nowrap', flexShrink: 0 }}>{s.time}</div>
-              <span style={{
-                fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: '.25rem',
-                textTransform: 'uppercase',
-                background: s.strength === 'hot' ? C.hotBg : C.warmBg,
-                color: s.strength === 'hot' ? C.hot : C.warm,
-              }}>{s.strength}</span>
-            </div>
-          ))}
-        </div>
-      </SLDSCard>
+    <div style={{ maxWidth: 920, margin: '0 auto' }}>
+      <Card title="Signal Feed" headerRight={<div style={{ display: 'flex', gap: 4 }}><Chip label="All" active /><Chip label="Hot" /><Chip label="Warm" /></div>} noPad>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: T.bgDefault }}>
+              <th style={{ padding: '6px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px', borderBottom: `1px solid ${T.borderDefault}` }}></th>
+              <th style={{ padding: '6px 8px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px', borderBottom: `1px solid ${T.borderDefault}` }}>Account</th>
+              <th style={{ padding: '6px 8px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px', borderBottom: `1px solid ${T.borderDefault}` }}>Signal</th>
+              <th style={{ padding: '6px 8px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px', borderBottom: `1px solid ${T.borderDefault}` }}>Time</th>
+              <th style={{ padding: '6px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: T.textPlaceholder, textTransform: 'uppercase', letterSpacing: '.5px', borderBottom: `1px solid ${T.borderDefault}` }}>Strength</th>
+            </tr>
+          </thead>
+          <tbody>
+            {signalFeed.map((s, i) => (
+              <tr key={s.id} style={{ borderBottom: `1px solid ${T.borderDefault}`, background: i%2===0 ? T.bgAlt : '#fafaf9' }}>
+                <td style={{ padding: '8px 16px', width: 24 }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: s.strength==='hot' ? T.error : T.warning }} /></td>
+                <td style={{ padding: '8px 8px' }}><span onClick={()=>goAcct(s.accountId)} style={{ color: T.textLink, cursor: 'pointer', fontWeight: 600 }}>{s.account}</span></td>
+                <td style={{ padding: '8px 8px', color: T.textWeak, fontSize: 12 }}>{s.action}</td>
+                <td style={{ padding: '8px 8px', color: T.textPlaceholder, whiteSpace: 'nowrap', fontSize: 12 }}>{s.time}</td>
+                <td style={{ padding: '8px 16px' }}><span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: T.radius, textTransform: 'uppercase', background: s.strength==='hot' ? T.errorLight : T.warningLight, color: s.strength==='hot' ? T.destructive : T.warning }}>{s.strength}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
     </div>
   );
 }
 
-function FilterChip({ label, active }) {
-  return (
-    <button style={{
-      fontSize: 11, fontWeight: active ? 600 : 400, padding: '3px 10px', borderRadius: '.25rem', cursor: 'pointer',
-      background: active ? C.brand : 'transparent', color: active ? '#fff' : C.textMuted,
-      border: active ? 'none' : `1px solid ${C.borderLight}`,
-    }}>{label}</button>
-  );
+function Chip({ label, active }) {
+  return <button style={{ fontSize: 11, fontWeight: active ? 700 : 400, padding: '2px 10px', borderRadius: T.radius, cursor: 'pointer', background: active ? T.brandPrimaryActive : 'transparent', color: active ? '#fff' : T.textPlaceholder, border: active ? 'none' : `1px solid ${T.borderDefault}` }}>{label}</button>;
 }
 
 
-/* ═══════════════════════════════════════════
-   VIEW 4: PERFORMANCE
-   ═══════════════════════════════════════════ */
-function PerformanceView({ completedCount, totalActions, completedCalls, completedEmails }) {
+/* ═══════════════════════════════════════════════════════════════
+   PERFORMANCE
+   ═══════════════════════════════════════════════════════════════ */
+function Performance({ done, total, doneCalls, doneEmails }) {
   const pd = performanceData;
-  const totalPipeline = accounts.reduce((s, a) => s + parseInt(a.dealValue?.replace(/[^0-9]/g,'') || '0'), 0);
-
+  const pipe = accounts.reduce((s, a) => s + parseInt(a.dealValue?.replace(/[^0-9]/g,'') || '0'), 0);
   return (
     <div style={{ maxWidth: 960, margin: '0 auto' }}>
-      {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: '.25rem', background: '#0176d3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icon.chart('#fff')}</div>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: 0 }}>Performance Dashboard</h1>
+        <div style={{ width: 36, height: 36, borderRadius: T.radius, background: '#e87e04', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </div>
+        <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Performance Dashboard</h1>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
-        <MetricCard label="Actions Completed" value={`${completedCount}/${totalActions}`} progress={(completedCount/totalActions)*100} color={C.brand} />
-        <MetricCard label="Calls Made" value={`${completedCalls}/${pd.callsTotal}`} progress={(completedCalls/pd.callsTotal)*100} color={C.warm} />
-        <MetricCard label="Emails Sent" value={`${completedEmails}/${pd.emailsTotal}`} progress={(completedEmails/pd.emailsTotal)*100} color={C.brand} />
-        <MetricCard label="Pipeline Influenced" value={`$${(completedCount * 4800).toLocaleString()}`} subtitle={`Target: $${totalPipeline.toLocaleString()}`} color={C.green} />
+        <MC l="Actions Completed" v={`${done}/${total}`} p={total?(done/total)*100:0} c={T.brandPrimaryActive} />
+        <MC l="Calls Made" v={`${doneCalls}/${pd.callsTotal}`} p={pd.callsTotal?(doneCalls/pd.callsTotal)*100:0} c={T.warning} />
+        <MC l="Emails Sent" v={`${doneEmails}/${pd.emailsTotal}`} p={pd.emailsTotal?(doneEmails/pd.emailsTotal)*100:0} c={T.brandPrimaryActive} />
+        <MC l="Pipeline Influenced" v={`$${(done*4800).toLocaleString()}`} sub={`Target: $${pipe.toLocaleString()}`} c={T.success} />
       </div>
 
-      <SLDSCard title="Weekly Completion Rate" style={{ marginBottom: 12 }}>
+      <Card title="Weekly Completion Rate" style={{ marginBottom: 12 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', height: 100 }}>
-          {pd.weeklyCompletion.map((day, i) => {
-            const pct = day.total > 0 ? (day.completed / day.total) * 100 : 0;
-            const isToday = day.day === 'Mon';
+          {pd.weeklyCompletion.map((d, i) => {
+            const p = d.total ? (d.completed/d.total)*100 : 0; const today = d.day==='Mon';
             return (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: C.text }}>{day.completed}/{day.total}</div>
-                <div style={{ width: '100%', maxWidth: 50, background: '#e5e5e5', borderRadius: '.25rem', height: 70, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' }}>
-                  <div style={{ width: '100%', borderRadius: '.25rem', height: `${pct}%`, background: C.brand, transition: 'height 0.5s', minHeight: pct > 0 ? 3 : 0 }} />
+                <span style={{ fontSize: 11, fontWeight: 600 }}>{d.completed}/{d.total}</span>
+                <div style={{ width: '100%', maxWidth: 48, background: T.borderDefault, borderRadius: T.radius, height: 64, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' }}>
+                  <div style={{ width: '100%', borderRadius: T.radius, height: `${p}%`, background: T.brandPrimaryActive, transition: 'height .5s', minHeight: p>0?3:0 }} />
                 </div>
-                <div style={{ fontSize: 11, fontWeight: isToday ? 700 : 400, color: isToday ? C.brand : C.textMuted }}>{day.day}{isToday ? ' (today)' : ''}</div>
+                <span style={{ fontSize: 11, color: today ? T.brandPrimaryActive : T.textPlaceholder, fontWeight: today ? 700 : 400 }}>{d.day}</span>
               </div>
             );
           })}
         </div>
-      </SLDSCard>
+      </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <SLDSCard title="Conversion Funnel">
-          {Object.entries(pd.conversionRates).map(([key, val]) => {
-            const labels = { signalToCall: 'Signal to Call', callToMeeting: 'Call to Meeting', meetingToDemo: 'Meeting to Demo', demoToClose: 'Demo to Close' };
+        <Card title="Conversion Funnel">
+          {Object.entries(pd.conversionRates).map(([k, v]) => {
+            const labels = { signalToCall:'Signal → Call', callToMeeting:'Call → Meeting', meetingToDemo:'Meeting → Demo', demoToClose:'Demo → Close' };
             return (
-              <div key={key} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                  <span style={{ fontSize: 12, color: C.textMuted }}>{labels[key]}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{val}</span>
-                </div>
-                <div style={{ height: 5, background: '#e5e5e5', borderRadius: '1rem', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${parseInt(val)}%`, borderRadius: '1rem', background: C.brand }} />
-                </div>
+              <div key={k} style={{ marginBottom: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}><span style={{ fontSize: 12, color: T.textPlaceholder }}>{labels[k]}</span><span style={{ fontSize: 12, fontWeight: 700 }}>{v}</span></div>
+                <div style={{ height: 6, background: T.borderDefault, borderRadius: T.radiusPill, overflow: 'hidden' }}><div style={{ height: '100%', width: `${parseInt(v)}%`, borderRadius: T.radiusPill, background: T.brandPrimaryActive }} /></div>
               </div>
             );
           })}
-        </SLDSCard>
-        <SLDSCard title="Top Performing Signals">
+        </Card>
+        <Card title="Top Performing Signals">
           {pd.topPerformingSignals.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: i < pd.topPerformingSignals.length - 1 ? `1px solid ${C.borderLight}` : 'none' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.text, width: 28, textAlign: 'right' }}>{s.conversion}%</span>
-              <div style={{ flex: 1, height: 5, background: '#e5e5e5', borderRadius: '1rem', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${s.conversion}%`, borderRadius: '1rem', background: i === 0 ? C.hot : i < 3 ? C.warm : C.brand }} />
-              </div>
-              <span style={{ fontSize: 12, color: C.textMuted, minWidth: 110 }}>{s.signal}</span>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', borderBottom: i<pd.topPerformingSignals.length-1?`1px solid ${T.borderDefault}`:'none' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, width: 28, textAlign: 'right' }}>{s.conversion}%</span>
+              <div style={{ flex: 1, height: 6, background: T.borderDefault, borderRadius: T.radiusPill, overflow: 'hidden' }}><div style={{ height: '100%', width: `${s.conversion}%`, borderRadius: T.radiusPill, background: i===0?T.error:i<3?T.warning:T.brandPrimaryActive }} /></div>
+              <span style={{ fontSize: 12, color: T.textPlaceholder, minWidth: 100 }}>{s.signal}</span>
             </div>
           ))}
-        </SLDSCard>
+        </Card>
       </div>
     </div>
   );
 }
 
-function MetricCard({ label, value, subtitle, progress, color }) {
+function MC({ l, v, p, c, sub }) {
   return (
-    <div style={{ background: C.white, borderRadius: C.cardRadius, boxShadow: C.cardShadow, padding: '0.75rem 1rem' }}>
-      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 400, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: C.text }}>{value}</div>
-      {subtitle && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{subtitle}</div>}
-      {progress !== undefined && (
-        <div style={{ height: 4, background: '#e5e5e5', borderRadius: '1rem', marginTop: 6, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: color, borderRadius: '1rem', transition: 'width 0.5s' }} />
-        </div>
-      )}
+    <div style={{ background: T.bgAlt, borderRadius: T.radius, border: `1px solid ${T.borderDefault}`, boxShadow: T.shadow, padding: 12 }}>
+      <div style={{ fontSize: 11, color: T.textPlaceholder, marginBottom: 3 }}>{l}</div>
+      <div style={{ fontSize: 22, fontWeight: 700 }}>{v}</div>
+      {sub && <div style={{ fontSize: 11, color: T.textPlaceholder, marginTop: 1 }}>{sub}</div>}
+      {p !== undefined && <div style={{ height: 4, background: T.borderDefault, borderRadius: T.radiusPill, marginTop: 6, overflow: 'hidden' }}><div style={{ height: '100%', width: `${p}%`, background: c, borderRadius: T.radiusPill, transition: 'width .5s' }} /></div>}
     </div>
   );
 }
 
 
-/* ═══════════════════════════════════════════
-   VIEW 5: HOW IT WORKS
-   ═══════════════════════════════════════════ */
-function HowItWorksView() {
+/* ═══════════════════════════════════════════════════════════════
+   HOW IT WORKS
+   ═══════════════════════════════════════════════════════════════ */
+function HowItWorks() {
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: '2rem 1.5rem' }}>
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.blueBg, color: C.brand, padding: '4px 14px', borderRadius: '.75rem', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
-          {Icon.info(C.brand)} Salesforce Native Experience
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '24px 24px 40px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 36 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: T.bgHighlight, color: T.brandPrimaryActive, padding: '4px 12px', borderRadius: T.radiusPill, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
+          {I.lightning(T.brandPrimaryActive)} Salesforce Native
         </span>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: C.text, margin: '0 0 10px', lineHeight: 1.3 }}>
-          This Runs Natively in Salesforce
-        </h1>
-        <p style={{ fontSize: 14, color: C.textMuted, maxWidth: 560, margin: '0 auto', lineHeight: 1.7 }}>
-          No separate app. No tab switching. Your SDRs work the AI-powered action queue directly inside Salesforce using Lightning Web Components and native Sales Cloud features.
+        <h1 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px' }}>This Runs Natively in Salesforce</h1>
+        <p style={{ fontSize: 14, color: T.textPlaceholder, maxWidth: 540, margin: '0 auto', lineHeight: 1.7 }}>
+          No separate app. No tab switching. Your SDRs work the AI-powered action queue directly inside Salesforce using Lightning Web Components.
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 40 }}>
-        <FlowStep n="1" icon={Icon.database} color={C.brand} title="Signals Flow In"
-          desc="Clay enrichment, website tracking, email engagement, and LinkedIn signals pipe into Salesforce objects in real-time."
-          items={['Clay enriches contacts with firmographic data','Website visits tracked via Web-to-Lead','Email opens, clicks, and replies scored','LinkedIn engagement via Sales Navigator','Job postings and news alerts via triggers']}
-        />
-        <FlowStep n="2" icon={Icon.cpu} color={C.brand} title="AI Prioritizes & Sequences"
-          desc="Daily at 6 AM, AI scores all accounts, generates the action queue, and drafts personalized outreach."
-          items={['Account scoring: Fit + Intent + Timing','Action sequencing by priority','Personalized call scripts generated','Email drafts written with context','Queue optimized for conversion']}
-        />
-        <FlowStep n="3" icon={Icon.monitor} color={C.navBg} title="SDR Executes from Salesforce"
-          desc="Reps work the queue inside Salesforce using the native dialer, email composer, and Lightning components."
-          items={['Action queue on Lightning dashboard','Click-to-call with Salesforce dialer','Pre-drafted emails sent via Salesforce','Activities auto-logged to CRM','Real-time pipeline tracking']}
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 36 }}>
+        <FS n="1" icon={I.database} c={T.brandPrimary} t="Signals Flow In" d="Clay enrichment, website tracking, and email engagement pipe into Salesforce objects in real-time." items={['Clay enriches contacts','Web-to-Lead tracking','Email engagement scored','LinkedIn via Sales Navigator','News alerts via triggers']} />
+        <FS n="2" icon={I.cpu} c={T.brandPrimaryActive} t="AI Prioritizes" d="Daily at 6 AM, AI scores all accounts, generates the queue, and drafts outreach." items={['Fit + Intent + Timing scoring','Priority sequencing','Personalized call scripts','Contextual email drafts','Conversion-optimized queue']} />
+        <FS n="3" icon={I.monitor} c={T.bgInverseLight} t="SDR Executes" d="Reps work the queue inside Salesforce using native dialer and email." items={['Lightning dashboard queue','Click-to-call dialer','Pre-drafted emails','Auto-logged activities','Real-time tracking']} />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 40 }}>
-        <div style={{
-          background: C.navBg, color: '#fff', padding: '12px 28px', borderRadius: '.25rem',
-          fontSize: 14, fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,.2)',
-        }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 36 }}>
+        <div style={{ background: T.bgInverseLight, color: '#fff', padding: '10px 24px', borderRadius: T.radius, fontSize: 14, fontWeight: 600, boxShadow: '0 4px 12px rgba(0,0,0,.2)' }}>
           No separate app. No tab switching. No learning curve.
         </div>
       </div>
 
-      <SLDSCard title="Built on Salesforce's Platform" style={{ marginBottom: 20 }}>
-        <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, margin: '0 0 14px' }}>
-          This entire experience leverages Salesforce's native extensibility — no third-party iframe hacks or external tools.
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <TechBlock title="Lightning Web Components" desc="The action queue, call scripts, and AI insights render directly on contact and account records. SDRs see everything in context without leaving the record." />
-          <TechBlock title="Salesforce Flows" desc="Automated flows handle signal scoring, action queue generation, and outreach drafting. The 6 AM daily queue build runs as a scheduled Salesforce Flow." />
-          <TechBlock title="Salesforce API Integration" desc="Real-time data sync between Clay enrichment, AI scoring engine, and Salesforce objects. Custom objects store action queue state and AI recommendations." />
-          <TechBlock title="Native Dialer + Email" desc="Calls are made through Salesforce's built-in dialer. Emails sent through Salesforce email actions. Everything is automatically logged." />
+      <Card title="Built on Salesforce's Platform" style={{ marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: T.textPlaceholder, lineHeight: 1.6, margin: '0 0 12px' }}>Leverages Salesforce's native extensibility — no third-party iframe hacks.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <TB t="Lightning Web Components" d="Action queue, call scripts, and AI insights render directly on records as Lightning components." />
+          <TB t="Salesforce Flows" d="Automated flows handle signal scoring, queue generation, and outreach drafting on a daily schedule." />
+          <TB t="Salesforce API" d="Real-time sync between Clay enrichment, AI scoring, and Salesforce objects via custom APIs." />
+          <TB t="Native Dialer + Email" d="Calls and emails through Salesforce's built-in tools. Everything auto-logged to the CRM." />
         </div>
-      </SLDSCard>
+      </Card>
 
-      <SLDSCard title="Frequently Asked Questions">
-        <FAQItem q="Can this really run inside Salesforce?" a="Yes. Using Lightning Web Components, Salesforce Flows, and the Salesforce API, the entire experience lives on the contact and account record within Sales Cloud. Your SDRs never leave Salesforce." />
-        <FAQItem q="What Salesforce edition do I need?" a="This requires Salesforce Sales Cloud Enterprise or above, with Lightning Experience enabled. Most mid-market companies already have these editions." />
-        <FAQItem q="How long does implementation take?" a="Typical implementation is 2-3 weeks. Week 1: Salesforce configuration and data enrichment setup. Week 2: AI scoring calibration and action queue flows. Week 3: SDR training and go-live." />
-        <FAQItem q="Does this replace our existing Salesforce workflows?" a="No — it enhances them. Your existing flows, email templates, and automation continue to work. The AI action queue layers on top, providing intelligent prioritization and pre-built outreach through your existing Salesforce infrastructure." />
-      </SLDSCard>
+      <Card title="FAQ">
+        <FQ q="Can this really run inside Salesforce?" a="Yes. Using LWC, Salesforce Flows, and the API, the entire experience lives on contact/account records within Sales Cloud." />
+        <FQ q="What Salesforce edition do I need?" a="Sales Cloud Enterprise or above with Lightning Experience enabled." />
+        <FQ q="How long does implementation take?" a="2-3 weeks. Week 1: Config + enrichment. Week 2: AI calibration + flows. Week 3: Training + go-live." />
+        <FQ q="Does this replace existing workflows?" a="No — it enhances them. Existing flows and templates continue to work. The AI queue layers on top." />
+      </Card>
     </div>
   );
 }
 
-function FlowStep({ n, icon, color, title, desc, items }) {
+function FS({ n, icon, c, t, d, items }) {
   return (
-    <SLDSCard>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: '.25rem', background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon(color)}</div>
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '.5px' }}>Step {n}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{title}</div>
-        </div>
+    <Card>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <div style={{ width: 30, height: 30, borderRadius: T.radius, background: `${c}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon(c)}</div>
+        <div><div style={{ fontSize: 10, fontWeight: 700, color: c, textTransform: 'uppercase', letterSpacing: '.5px' }}>Step {n}</div><div style={{ fontSize: 14, fontWeight: 700 }}>{t}</div></div>
       </div>
-      <p style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.6, margin: '0 0 10px' }}>{desc}</p>
-      <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
-        {items.map((item, i) => (
-          <li key={i} style={{ fontSize: 12, color: C.textMuted, padding: '2px 0', display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 4, height: 4, borderRadius: '50%', background: color, flexShrink: 0 }} />
-            {item}
-          </li>
-        ))}
-      </ul>
-    </SLDSCard>
+      <p style={{ fontSize: 12, color: T.textPlaceholder, lineHeight: 1.6, margin: '0 0 8px' }}>{d}</p>
+      <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>{items.map((it, i) => <li key={i} style={{ fontSize: 12, color: T.textPlaceholder, padding: '1px 0', display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 4, height: 4, borderRadius: '50%', background: c, flexShrink: 0 }} />{it}</li>)}</ul>
+    </Card>
   );
 }
 
-function TechBlock({ title, desc }) {
-  return (
-    <div style={{ background: C.bg, borderRadius: C.cardRadius, padding: 12 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 3 }}>{title}</div>
-      <div style={{ fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>{desc}</div>
-    </div>
-  );
+function TB({ t, d }) {
+  return <div style={{ background: T.bgDefault, borderRadius: T.radius, padding: 10 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{t}</div><div style={{ fontSize: 12, color: T.textPlaceholder, lineHeight: 1.6 }}>{d}</div></div>;
 }
 
-function FAQItem({ q, a }) {
-  const [open, setOpen] = useState(false);
+function FQ({ q, a }) {
+  const [o, setO] = useState(false);
   return (
-    <div style={{ borderBottom: `1px solid ${C.borderLight}`, padding: '10px 0' }}>
-      <div onClick={() => setOpen(!open)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{q}</span>
-        <span style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>{Icon.chevronDown(C.textMuted)}</span>
+    <div style={{ borderBottom: `1px solid ${T.borderDefault}`, padding: '8px 0' }}>
+      <div onClick={() => setO(!o)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+        <span style={{ fontSize: 13, fontWeight: 600 }}>{q}</span>
+        <span style={{ transform: o ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform .2s' }}>{I.chevDown(T.textPlaceholder)}</span>
       </div>
-      {open && <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.7, marginTop: 6, animation: 'fadeIn 0.2s ease' }}>{a}</div>}
+      {o && <div style={{ fontSize: 13, color: T.textPlaceholder, lineHeight: 1.7, marginTop: 4, animation: 'fadeIn .2s ease' }}>{a}</div>}
     </div>
   );
 }
